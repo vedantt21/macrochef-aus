@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { canViewRecipe, requireUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
 import { apiError, cleanTags } from "@/lib/utils";
 import { recipeUpdateSchema } from "@/lib/validation";
 
 type Context = { params: Promise<{ id: string }> };
+type RecipeUpdateArgs = Parameters<ReturnType<typeof getDb>["recipe"]["update"]>[0];
+type RecipeUpdateData = RecipeUpdateArgs["data"];
 
 const includeRecipe = {
   user: true,
@@ -51,7 +52,7 @@ export async function PATCH(request: NextRequest, context: Context) {
   if (!parsed.success) return apiError(parsed.error.issues[0]?.message || "Invalid recipe update.");
 
   const { tags, imageUrl, ...recipeData } = parsed.data;
-  const data: Prisma.RecipeUpdateInput = { ...recipeData };
+  const data: RecipeUpdateData = { ...recipeData };
   if (imageUrl !== undefined) data.imageUrl = imageUrl || null;
   if (tags !== undefined) data.tags = { set: cleanTags(tags) };
 

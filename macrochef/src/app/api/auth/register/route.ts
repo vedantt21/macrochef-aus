@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { hashPassword } from "@/lib/auth";
 import { getDb } from "@/lib/db";
@@ -30,10 +29,19 @@ export async function POST(request: NextRequest) {
     await sendVerificationEmail(user.email, code);
     return NextResponse.json({ user: publicUser(user), verificationRequired: true }, { status: 201 });
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+    if (isPrismaUniqueError(error)) {
       return apiError("Email or username is already registered.", 409);
     }
     console.error(error);
     return apiError("Unable to create account.", 500);
   }
+}
+
+function isPrismaUniqueError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  );
 }

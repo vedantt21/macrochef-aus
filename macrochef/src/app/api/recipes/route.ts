@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { canViewRecipe, requireUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
@@ -9,7 +8,10 @@ import { recipeSchema } from "@/lib/validation";
 const includeRecipe = {
   user: true,
   _count: { select: { likes: true, saves: true, comments: true } },
-} satisfies Prisma.RecipeInclude;
+} as const;
+
+type RecipeFindManyArgs = NonNullable<Parameters<ReturnType<typeof getDb>["recipe"]["findMany"]>[0]>;
+type RecipeWhereInput = RecipeFindManyArgs["where"];
 
 export async function GET(request: NextRequest) {
   const { user, response } = await requireUser(request);
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
   const take = 12;
   const friendIds = await friendIdsFor(user!.id);
 
-  const baseWhere: Prisma.RecipeWhereInput = q
+  const baseWhere: RecipeWhereInput = q
     ? {
         OR: [
           { title: { contains: q, mode: "insensitive" } },
@@ -43,7 +45,7 @@ export async function GET(request: NextRequest) {
     });
     recipes = saves.map((save) => save.recipe);
   } else {
-    const where: Prisma.RecipeWhereInput = { ...baseWhere };
+    const where: RecipeWhereInput = { ...baseWhere };
     if (filter === "mine") where.userId = user!.id;
     if (filter === "friends") where.userId = { in: friendIds };
     if (filter === "public") where.visibility = "PUBLIC";
